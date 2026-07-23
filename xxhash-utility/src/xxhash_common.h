@@ -7,6 +7,11 @@
 namespace xxhash_utility
 {
 
+// Appends a timestamped line to %APPDATA%\Hex-Rays\IDA Pro\IDA-XXHash-Utility.log.
+// Shared by xxhash_plugin.cpp (top-level collapse/failure logging) and
+// xxhash_common.cpp (structural-rejection logging inside match_xxhash_pattern).
+void debug_log(const char *format, ...);
+
 enum xxhash_variant_t
 {
   XXHASH_32,
@@ -64,11 +69,27 @@ match_identity_t identify(const cexpr_t *e);
 // base. Used to recognize std::string's `_Mysize`/`_Myres`/`_Bx._Ptr`
 // fields regardless of whether Hex-Rays represents the union access as one
 // flattened memref or several nested ones.
+//
+// Per hexrays.hpp's cexpr_t::m doc comment: "member offset (used for
+// cot_memptr, cot_memref) ... for unions, the member number" -- i.e. `m` is
+// a BYTE OFFSET when the immediate parent expression's type is a plain
+// struct, but an ORDINAL MEMBER INDEX when the immediate parent is a union.
+// resolve_member_access() checks each layer's immediate parent type and
+// only accumulates `m` into `offset` for struct layers; union layers
+// contribute 0 (all union members share byte offset 0), and the union
+// member's own name is captured into `member_name` for the outermost
+// (leaf) access in the chain, in case a caller needs to disambiguate which
+// union arm was actually accessed (offset alone can't, since every member
+// of a union sits at the same offset).
 struct member_access_t
 {
   bool ok = false;
   match_identity_t base;
   uint64 offset = 0;
+  // Name of the accessed member, set only when `e` itself (the outermost/
+  // leaf node of the chain) is a member access whose immediate parent type
+  // is a union; empty otherwise.
+  qstring member_name;
 };
 
 member_access_t resolve_member_access(const cexpr_t *e);

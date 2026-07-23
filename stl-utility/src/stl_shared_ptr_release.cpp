@@ -37,12 +37,15 @@ bool match_rep_member(const cexpr_t *e, const cexpr_t **base)
   return true;
 }
 
-// True if `e` is `_InterlockedExchangeAdd(ANY_PTR_EXPR, 0xFFFFFFFF) == 1`.
-bool match_decrement_check(const cexpr_t *e)
+// Shared shape-check for both match_decrement_check() and
+// match_decrement_check_at() below. Returns the inner
+// `_InterlockedExchangeAdd(...)` call node if `e` is
+// `_InterlockedExchangeAdd(ANY_PTR_EXPR, 0xFFFFFFFF) == 1`, else nullptr.
+const cexpr_t *extract_decrement_call(const cexpr_t *e)
 {
   e = strip_casts(e);
   if ( e == nullptr || e->op != cot_eq )
-    return false;
+    return nullptr;
 
   const cexpr_t *a = strip_casts(e->x);
   const cexpr_t *b = strip_casts(e->y);
@@ -52,19 +55,69 @@ bool match_decrement_check(const cexpr_t *e)
   else if ( is_num32(b, 1) )
     call = a;
   if ( call == nullptr )
-    return false;
+    return nullptr;
 
   call = strip_casts(call);
   if ( call == nullptr || call->op != cot_call || call->a == nullptr || call->a->size() != 2 )
-    return false;
+    return nullptr;
 
   const cexpr_t *callee = strip_casts(call->x);
   if ( callee == nullptr || callee->op != cot_helper || callee->helper == nullptr )
-    return false;
+    return nullptr;
   if ( std::strcmp(callee->helper, "_InterlockedExchangeAdd") != 0 )
+    return nullptr;
+
+  if ( !is_num32(strip_casts(&call->a->at(1)), 0xFFFFFFFFu) )
+    return nullptr;
+
+  return call;
+}
+
+// True if `e` is `_InterlockedExchangeAdd(ANY_PTR_EXPR, 0xFFFFFFFF) == 1`.
+bool match_decrement_check(const cexpr_t *e)
+{
+  return extract_decrement_call(e) != nullptr;
+}
+
+bool same_expr(const cexpr_t *a, const cexpr_t *b)
+{
+  a = strip_casts(a);
+  b = strip_casts(b);
+  if ( a == nullptr || b == nullptr )
+    return false;
+  return a->equal_effect(*b);
+}
+
+// True if `e` is structurally `base + units` (or `units + base`), tolerating
+// cast wrapping on either operand -- e.g. `base` being a `volatile signed
+// __int32 *` and `units` being 2, matching `base + 2` in that pointer's own
+// element units (== +8 bytes, i.e. `_Uses`'s offset).
+bool match_ptr_plus_units(const cexpr_t *e, const cexpr_t *base, uint32 units)
+{
+  e = strip_casts(e);
+  if ( e == nullptr || e->op != cot_add )
     return false;
 
-  return is_num32(strip_casts(&call->a->at(1)), 0xFFFFFFFFu);
+  const cexpr_t *x = strip_casts(e->x);
+  const cexpr_t *y = strip_casts(e->y);
+  if ( is_num32(y, units) )
+    return same_expr(x, base);
+  if ( is_num32(x, units) )
+    return same_expr(y, base);
+  return false;
+}
+
+// Like match_decrement_check(), but additionally requires the call's first
+// argument to be structurally `base + units` (tolerating casts). Used for
+// the bare-pointer cot_land shape below, where there's no `._Rep` member
+// access to anchor the match on, so we must verify the pointer arithmetic
+// explicitly instead.
+bool match_decrement_check_at(const cexpr_t *e, const cexpr_t *base, uint32 units)
+{
+  const cexpr_t *call = extract_decrement_call(e);
+  if ( call == nullptr )
+    return false;
+  return match_ptr_plus_units(&call->a->at(0), base, units);
 }
 
 // If `branch` is a single cit_expr/cit_if directly, returns it; if it's a
@@ -105,7 +158,62 @@ bool try_match_release(cinsn_t *outer_if, release_match_t *out)
 
   const cexpr_t *sp_expr = nullptr;
   if ( !match_rep_member(&outer_if->cif->expr, &sp_expr) )
-    return false;
+  {
+    // Second valid shape: the owning object was never retyped to a
+    // shared_ptr-bearing struct, so there's no "obj._Rep" member access --
+    // the control-block pointer is already a bare raw pointer local (e.g.
+    // "v30"), and the null-check + _Uses-decrement check are combined into
+    // a single `cot_land` (`P && decrement_check(P + 2)`) instead of two
+    // nested `if`s:
+    //
+    //   if ( v30 && _InterlockedExchangeAdd(v30 + 2, 0xFFFFFFFF) == 1 )
+    //
+    // Here `sp_expr` becomes `P` itself (the bare pointer), since there's no
+    // `_Rep` member to embed -- the synthesized helper is `~shared_ptr(P)`.
+    const cexpr_t *land = strip_casts(&outer_if->cif->expr);
+    if ( land != nullptr && land->op == cot_land )
+    {
+      const cexpr_t *ptr_expr = strip_casts(land->x);
+      if ( ptr_expr == nullptr )
+        return false;
+      if ( !match_decrement_check_at(land->y, ptr_expr, 2) )
+        return false;
+
+      sp_expr = ptr_expr;
+    }
+    else
+    {
+      // Third valid shape (confirmed via sub_140452240 in ScrapMechanic.exe):
+      // same bare-pointer situation as the cot_land shape above (no "._Rep"
+      // member to anchor on), but here the null-check and the _Uses-
+      // decrement check are NOT combined into one `cot_land` condition --
+      // they're two separate nested `if`s, same structure as the first
+      // (typed) shape, just with a bare pointer instead of "obj._Rep":
+      //
+      //   if ( v8 )
+      //   {
+      //     if ( _InterlockedExchangeAdd(v8 + 2, 0xFFFFFFFF) == 1 )
+      //     {
+      //       (**(void (__fastcall ***)(volatile signed __int32 *))v8)(v8);
+      //       if ( _InterlockedExchangeAdd(v8 + 3, 0xFFFFFFFF) == 1 )
+      //         v8->VTABLE[0x1]();
+      //     }
+      //   }
+      //
+      // The outer condition here is just the bare pointer expression itself
+      // (`v8`), stripped of casts -- there's nothing further to validate
+      // about its shape; the existing strict uses_if/uses_body checks below
+      // (identical to the first shape's) provide the safety margin, since
+      // uses_if must independently pass match_decrement_check() and
+      // uses_body must have exactly a destroy-call statement plus a
+      // weaks_if that itself passes match_decrement_check().
+      const cexpr_t *ptr_expr = strip_casts(&outer_if->cif->expr);
+      if ( ptr_expr == nullptr )
+        return false;
+
+      sp_expr = ptr_expr;
+    }
+  }
 
   cinsn_t *uses_if = single_statement(outer_if->cif->ithen, cit_if);
   if ( uses_if == nullptr || uses_if->cif == nullptr || uses_if->cif->ielse != nullptr )
@@ -157,7 +265,23 @@ bool synthesize_and_replace(const release_match_t &match)
   args->resize(1);
   args->at(0).consume_cexpr(new cexpr_t(*match.sp_expr));
 
-  cexpr_t *call = call_helper(void_type, args, "release");
+  // Render as a destructor-call-shaped helper, e.g. "~shared_ptr(sp_x)",
+  // rather than a generic "release(sp_x)". Hex-Rays' call_helper()/
+  // vcall_helper() (see hexrays.hpp) only ever print a helper expression as
+  // "name(args...)" -- the name is an arbitrary string the decompiler prints
+  // verbatim, not a real function, and there is no ctree construct available
+  // to us that prints true member-destructor syntax ("obj.~Type()"); that
+  // form only appears when Hex-Rays itself recognizes an actual destructor
+  // call, which is not what we're synthesizing here. So "~shared_ptr(...)"
+  // is the closest achievable approximation, and importantly the object
+  // argument below is still a real cloned cexpr_t (not text baked into the
+  // helper name), so it stays clickable/renameable in the pseudocode.
+  //
+  // Note: match_rep_member()/try_match_release() above only recognize the
+  // "obj._Rep" member-offset pattern and never inspect the object's type,
+  // so this matcher cannot distinguish shared_ptr from weak_ptr releases --
+  // both render as "~shared_ptr(...)" here.
+  cexpr_t *call = call_helper(void_type, args, "~shared_ptr");
   if ( call == nullptr )
     return false;
 

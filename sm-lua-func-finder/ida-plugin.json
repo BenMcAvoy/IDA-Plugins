@@ -1,0 +1,13 @@
+{
+  "IDAMetadataDescriptorVersion": 1,
+  "plugin": {
+    "name": "SM Lua Function Finder",
+    "entryPoint": "sm_lua_func_finder",
+    "categories": [
+      "decompilation"
+    ],
+    "idaVersions": ">=9.2",
+    "description": "Discovers Lua-callable C functions registered through luaL_register() -- sm.* static namespaces and userdata methods (via luaL_newmetatable) -- and renames them Lua_<Owner>_<func>, adding doc comments from the sm_api_differ json dump where available.",
+    "version": "0.1.0"
+  }
+}

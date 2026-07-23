@@ -13,11 +13,11 @@
 #include <cstdarg>
 #include <set>
 
-namespace
+namespace xxhash_utility
 {
 
-using namespace xxhash_utility;
-
+// Declared in xxhash_common.h; defined here so both this file and
+// xxhash_common.cpp (structural-rejection logging) can call it.
 void debug_log(const char *format, ...)
 {
   qstring path;
@@ -39,6 +39,13 @@ void debug_log(const char *format, ...)
     message.c_str());
   qfclose(file);
 }
+
+} // namespace xxhash_utility
+
+namespace
+{
+
+using namespace xxhash_utility;
 
 // Runs at hxe_maturity/CMAT_FINAL (before Hex-Rays generates pseudocode
 // text), mirroring the ctree-mutation timing of IDA-VTable-Utility's

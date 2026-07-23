@@ -7,9 +7,11 @@ A collection of IDA Pro / Hex-Rays plugins, built and installed together.
 | Directory | Target | Description |
 | --- | --- | --- |
 | `vtable-utility/` | `pseudocode_xrefs` | Virtual-call recognition, inheritance-aware VTable navigation, renaming, prototypes, and cross-references. |
-| `stl-utility/` | `stl_retype` | One-click retyping and SSO-aware content preview for MSVC STL containers (`std::string`, `shared_ptr`, `vector`, `unique_ptr`), plus collapsing inlined `shared_ptr` release boilerplate. |
+| `stl-utility/` | `stl_retype` | One-click retyping and SSO-aware content preview for MSVC STL containers (`std::string`, `shared_ptr`, `vector`, `unique_ptr`, header-only `map`/`set`/`unordered_map`/`unordered_set` stats), plus collapsing inlined `shared_ptr`/`string`/`std::function`/`vector` (trivial-element only) release and closure-teardown boilerplate. |
 | `xxhash-utility/` | `xxhash_collapse` | Recognizes compiler-inlined `XXH32`/`XXH64` and collapses them into a readable call. |
-| `sm-global-finder/` | `sm_global_finder` | Discovers MSVC RTTI singleton construction/allocation chains and renames the constructor, allocator, and backing global. |
+| `sm-global-finder/` | `sm_global_finder` | Discovers MSVC RTTI singleton construction/allocation chains and renames the constructor, allocator, and backing global; also walks the real MSVC RTTI structures (Complete Object Locator / Class Hierarchy Descriptor) to recover each class's base classes and annotates its vtable with an inheritance comment; also synthesizes a best-effort struct layout for each class from its constructor's field-initialization writes, registered into Local Types for manual review (not auto-applied, to avoid silently corrupting decompilation with a wrong guess). |
+| `crt-idioms-utility/` | `crt_idioms_collapse` | Recognizes compiler-inlined CRT idioms (currently: inlined `strlen` loops) and collapses them into a readable call. |
+| `sm-lua-func-finder/` | `sm_lua_func_finder` | Discovers Lua-callable C functions registered via `luaL_register()` (Scrap Mechanic's `sm.*` static namespaces and userdata methods) and renames them `Lua_<Owner>_<func>`, adding doc comments from the `sm_api_differ` json dump where available; also collapses the `lua_gettop`/`luaL_error` argument-count-check boilerplate that opens nearly every one of them into a single `L_checkArgCount(L, N)` call. |
 
 Each plugin is a self-contained CMake project (its own `CMakeLists.txt` /
 `ida-plugin.json`), sharing the same build conventions.

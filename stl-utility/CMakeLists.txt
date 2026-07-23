@@ -22,9 +22,13 @@ ida_add_plugin(stl_retype
     src/stl_string.cpp
     src/stl_shared_ptr.cpp
     src/stl_shared_ptr_release.cpp
+    src/stl_string_release.cpp
+    src/stl_function_release.cpp
     src/stl_vector.cpp
+    src/stl_vector_release.cpp
     src/stl_unique_ptr.cpp
     src/stl_tree.cpp
+    src/stl_unordered_map.cpp
   METADATA_JSON
     ida-plugin.json
 )

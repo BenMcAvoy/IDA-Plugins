@@ -6,6 +6,9 @@
 #include "stl_registry.h"
 #include "stl_memory.h"
 #include "stl_shared_ptr_release.h"
+#include "stl_string_release.h"
+#include "stl_function_release.h"
+#include "stl_vector_release.h"
 #include "stl_util.h"
 
 #include <hexrays.hpp>
@@ -281,6 +284,18 @@ ssize_t idaapi decompiler_callback(void *, hexrays_event_t event, va_list va)
       const int collapsed = collapse_shared_ptr_releases(cfunc);
       if ( collapsed > 0 )
         debug_log("collapsed %d shared_ptr release sequence(s) in function=%a", collapsed, cfunc->entry_ea);
+
+      const int collapsed_strings = collapse_string_releases(cfunc);
+      if ( collapsed_strings > 0 )
+        debug_log("collapsed %d string release sequence(s) in function=%a", collapsed_strings, cfunc->entry_ea);
+
+      const int collapsed_functions = collapse_function_releases(cfunc);
+      if ( collapsed_functions > 0 )
+        debug_log("collapsed %d function release sequence(s) in function=%a", collapsed_functions, cfunc->entry_ea);
+
+      const int collapsed_vectors = collapse_vector_releases(cfunc);
+      if ( collapsed_vectors > 0 )
+        debug_log("collapsed %d vector release sequence(s) in function=%a", collapsed_vectors, cfunc->entry_ea);
     }
     return 0;
   }

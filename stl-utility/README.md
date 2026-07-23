@@ -17,6 +17,34 @@ Hex-Rays can't resolve on its own, so it never shows the real string content.
 - `std::map` / `std::set` / `std::multimap` / `std::multiset`: **header-only
   stub** -- shows element count and the root/sentinel pointer; full node
   traversal is not implemented in v1.
+- `std::unordered_map` / `std::unordered_set`: **header-only stub** -- shows
+  element count, bucket count, and max load factor; full node traversal is
+  not implemented in v1. Unlike this plugin's other descriptors, this
+  layout is derived purely from the MSVC STL header source and has **not**
+  been verified against a live/decompiled binary (this plugin's usual real-
+  world test target has no `unordered_map`/`unordered_set` usage anywhere
+  in it) -- treat the applied type with a bit more skepticism than the
+  others.
+
+Additionally, this plugin collapses several kinds of inlined MSVC STL
+scope-exit teardown boilerplate directly in Hex-Rays pseudocode (not tied to
+the retype action above -- these run automatically on every decompile):
+
+- Inlined `std::shared_ptr`/`std::weak_ptr` release sequences, collapsed to
+  `~shared_ptr(obj);`.
+- Inlined `std::basic_string` (SSO-aware) release sequences, collapsed to
+  `~string(obj);`.
+- Inlined `std::function`/delegate-closure teardown sequences (the
+  `std::_Func_impl_no_alloc<...>` internal storage behind `std::function`),
+  collapsed to `~function(obj);`.
+- Inlined `std::vector<T>::~vector()` for TRIVIALLY DESTRUCTIBLE element
+  types `T` only (pointers, ints, PODs, structs without destructors -- the
+  overwhelmingly common case), collapsed to `~vector(obj);`. For a trivial
+  `T`, MSVC elides the per-element destroy loop entirely, so the whole
+  destructor is just `if ( v->_Myfirst ) operator delete(v->_Myfirst);` (or
+  the sized-delete form). The non-trivial-element case (a loop destroying
+  each element before the free) is a different, harder shape and is **not**
+  handled -- it's simply left uncollapsed, not mis-collapsed.
 
 ## Usage
 
@@ -92,6 +120,13 @@ Diagnostic output is written to:
 - x64 only (MSVC VS2019/2022 ABI). 32-bit targets are not supported.
 - `std::map`/`std::set` only expose the tree header (count + root pointer),
   not full node/iterator traversal.
+- `std::unordered_map`/`std::unordered_set` only expose the hash-table
+  header (count, bucket count, max load factor), not full node/iterator
+  traversal; and this layout is header-derived, not verified against a
+  live/decompiled binary.
+- `std::vector<T>`'s destructor/release collapse only handles trivially
+  destructible element types `T`; a non-trivial per-element destructor loop
+  is not recognized.
 - `std::vector<T>`/`std::unique_ptr<T>` prompt for the element type `T` when
   it can't be recovered from existing type info.
 - `std::unique_ptr<T>` with a stateful deleter (not the default

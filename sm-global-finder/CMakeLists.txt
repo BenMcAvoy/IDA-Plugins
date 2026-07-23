@@ -16,7 +16,9 @@ find_package(idasdk REQUIRED)
 ida_add_plugin(sm_global_finder
   SOURCES
     src/rtti_scan.cpp
+    src/rtti_hierarchy.cpp
     src/ctree_analysis.cpp
+    src/struct_synth.cpp
     src/plugin_main.cpp
   METADATA_JSON
     ida-plugin.json

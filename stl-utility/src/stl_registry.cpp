@@ -8,6 +8,7 @@ void register_stl_shared_ptr_descriptors(std::vector<const stl_type_descriptor_t
 void register_stl_vector_descriptors(std::vector<const stl_type_descriptor_t *> *out);
 void register_stl_unique_ptr_descriptors(std::vector<const stl_type_descriptor_t *> *out);
 void register_stl_tree_descriptors(std::vector<const stl_type_descriptor_t *> *out);
+void register_stl_unordered_map_descriptors(std::vector<const stl_type_descriptor_t *> *out);
 
 namespace
 {
@@ -20,6 +21,7 @@ std::vector<const stl_type_descriptor_t *> build_registry()
   register_stl_vector_descriptors(&result);
   register_stl_unique_ptr_descriptors(&result);
   register_stl_tree_descriptors(&result);
+  register_stl_unordered_map_descriptors(&result);
   return result;
 }
 

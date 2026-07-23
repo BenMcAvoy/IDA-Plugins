@@ -50,7 +50,10 @@ qstring extract_class_name(const char *mangled)
       qstring cls = demangled.substr(0, pos);
       size_t space = cls.rfind(' ');
       if ( space != qstring::npos )
-        cls = cls.substr(space + 1, cls.length() - space - 1);
+        // NOTE: qstring::substr(pos, n) takes an *ending index*, not a
+        // length (unlike std::string::substr) -- so the end argument here
+        // must be cls.length(), not a remaining-character count.
+        cls = cls.substr(space + 1, cls.length());
       if ( !cls.empty() )
         return cls;
     }
@@ -58,7 +61,9 @@ qstring extract_class_name(const char *mangled)
 
   // Fallback: strip "??_7" prefix and "@@6B@" suffix directly from the mangled name.
   qstring raw = mangled;
-  raw = raw.substr(4, raw.length() - 4);
+  // See note above: qstring::substr's 2nd arg is an ending index, so pass
+  // raw.length() (the full end), not raw.length()-4.
+  raw = raw.substr(4, raw.length());
   size_t suffix_pos = raw.find("@@6B@");
   if ( suffix_pos != qstring::npos )
     raw = raw.substr(0, suffix_pos);

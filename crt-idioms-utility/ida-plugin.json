@@ -1,0 +1,14 @@
+{
+  "IDAMetadataDescriptorVersion": 1,
+  "plugin": {
+    "name": "IDA-CRT-Idioms-Utility",
+    "entryPoint": "crt_idioms_collapse",
+    "categories": [
+      "decompilation",
+      "ui-ux-and-visualization"
+    ],
+    "idaVersions": ">=9.2",
+    "description": "Recognizes compiler-inlined CRT idioms (currently: inlined strlen loops) and collapses them into a readable call.",
+    "version": "0.1.0"
+  }
+}
