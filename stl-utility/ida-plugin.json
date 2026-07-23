@@ -1,0 +1,14 @@
+{
+  "IDAMetadataDescriptorVersion": 1,
+  "plugin": {
+    "name": "IDA-STL-Utility",
+    "entryPoint": "stl_retype",
+    "categories": [
+      "decompilation",
+      "ui-ux-and-visualization"
+    ],
+    "idaVersions": ">=9.2",
+    "description": "One-click retyping and content preview for MSVC STL containers (std::string, shared_ptr, vector, unique_ptr) in Hex-Rays pseudocode.",
+    "version": "0.1.0"
+  }
+}

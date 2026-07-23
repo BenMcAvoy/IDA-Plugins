@@ -1,0 +1,14 @@
+{
+  "IDAMetadataDescriptorVersion": 1,
+  "plugin": {
+    "name": "IDA-XXHash-Utility",
+    "entryPoint": "xxhash_collapse",
+    "categories": [
+      "decompilation",
+      "ui-ux-and-visualization"
+    ],
+    "idaVersions": ">=9.2",
+    "description": "Recognizes compiler-inlined XXH32/XXH64 hashing routines in Hex-Rays pseudocode and collapses them into a single readable call.",
+    "version": "0.1.0"
+  }
+}

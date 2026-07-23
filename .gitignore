@@ -1,0 +1,72 @@
+# Build products and generated binaries
+**/build/
+*.dll
+*.exe
+*.exp
+*.ilk
+*.lib
+*.map
+*.obj
+*.pdb
+
+# Local SDKs, test databases, fixtures, and developer utilities
+/.ida-sdk-reference/
+/.ida-user-test/
+*.id0
+*.id1
+*.id2
+*.i64
+*.idb
+*.nam
+*.til
+
+# Generated diagnostics and temporary files
+*.log
+*.tmp
+*.bak
+*.orig
+*.swp
+*~
+
+# Editors and local workspace configuration
+/.agents/
+/.codex/
+/.idea/
+/.vscode/
+/.vs/
+*.suo
+*.user
+
+# Private configuration, credentials, and signing material
+/.private/
+/private/
+/secrets/
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.pfx
+*.p12
+*.cer
+*.crt
+*credentials*
+*secret*
+
+# Screenshots must never be committed
+/screenshots/
+**/screenshots/
+screenshot*
+Screenshot*
+Screen Shot*
+*.bmp
+*.gif
+*.jpeg
+*.jpg
+*.png
+*.webp
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+desktop.ini

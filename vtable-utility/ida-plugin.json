@@ -1,0 +1,14 @@
+{
+  "IDAMetadataDescriptorVersion": 1,
+  "plugin": {
+    "name": "IDA-VTable-Utility",
+    "entryPoint": "pseudocode_xrefs",
+    "categories": [
+      "decompilation",
+      "ui-ux-and-visualization"
+    ],
+    "idaVersions": ">=9.2",
+    "description": "Recognizes virtual calls and provides inheritance-aware VTable navigation, renaming, prototypes, and cross-references.",
+    "version": "1.14.0"
+  }
+}

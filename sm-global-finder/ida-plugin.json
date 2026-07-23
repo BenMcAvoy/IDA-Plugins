@@ -1,0 +1,13 @@
+{
+  "IDAMetadataDescriptorVersion": 1,
+  "plugin": {
+    "name": "SM Global Finder",
+    "entryPoint": "sm_global_finder",
+    "categories": [
+      "decompilation"
+    ],
+    "idaVersions": ">=9.2",
+    "description": "Discovers MSVC RTTI singleton construction/allocation chains (vtable -> constructor -> allocator -> global) and renames the constructor, allocator, and backing global.",
+    "version": "0.1.0"
+  }
+}
