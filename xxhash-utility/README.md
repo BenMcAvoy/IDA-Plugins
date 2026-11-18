@@ -40,12 +40,12 @@ Matching is deliberately **strict**: every structural piece (loop shape,
 convergence, small/large split, tail call) must be found, or nothing is
 rewritten. This trades some false negatives (real call sites that won't
 collapse yet) for confidence that no unrelated code gets corrupted by a bad
-match, since this plugin — unlike the sister plugins — actually deletes and
+match, since this plugin - unlike the sister plugins - actually deletes and
 replaces real ctree nodes rather than just annotating or hiding a single
 argument.
 
 The hashed input is recognized either as a `std::string` (MSVC SSO layout,
-detected structurally — not by reading memory, since this plugin only
+detected structurally - not by reading memory, since this plugin only
 needs to recognize the *shape*) or a raw pointer+length buffer.
 
 ## Requirements
@@ -54,7 +54,7 @@ needs to recognize the *shape*) or a raw pointer+length buffer.
 - Hex-Rays decompiler
 - IDA SDK configured through the `IDASDK` environment variable (a checkout of
   [HexRaysSA/ida-sdk](https://github.com/HexRaysSA/ida-sdk) at a tag with
-  CMake support, e.g. `v9.3.1-release` — not the classic hex-rays SDK zip)
+  CMake support, e.g. `v9.3.1-release` - not the classic hex-rays SDK zip)
 - CMake 3.27 or newer
 - Visual Studio with C++ build tools on Windows
 
@@ -82,23 +82,23 @@ elevated copy, since `Program Files` is admin-writable only).
 
 - x64 only.
 - The finalization tail is only recognized as a **named/callable helper**
-  (e.g. `XXH32_FinalizeTail(...)`) — a fully inlined tail/avalanche (no
+  (e.g. `XXH32_FinalizeTail(...)`) - a fully inlined tail/avalanche (no
   helper call at all, just more raw arithmetic) is not recognized in v1.
 - **XXH64 support is preliminary.** It reuses the exact same structural
   matcher as XXH32 (parameterized for 64-bit primes, rotate 31, advance 32)
   but does **not** yet recognize the extra per-accumulator merge-round pass
   real XXH64 performs before convergence. It was implemented without a
-  verified real-world XXH64 sample to test against — treat it as
+  verified real-world XXH64 sample to test against - treat it as
   best-effort until validated against an actual binary.
 - The accumulator-seeding statements (before the loop) are only checked
   for *presence* (each of the 4 lane variables must be assigned something
   before the loop), not validated against the exact textbook seeding
-  formula — real-world seed folding turned out to be more variable than
+  formula - real-world seed folding turned out to be more variable than
   expected (see the design doc), so the loop/convergence/tail-call matches
   are the actual strictness backstop, not the seeding formula.
 - `std::map`/`std::set`-style inputs aren't applicable here; only
   `std::string` and raw buffers are recognized as hash inputs.
 - Because this plugin mutates the ctree (not just pseudocode text), a
   false match would actually corrupt the decompilation output for that
-  function. The strict matching is the safety net — if you ever see an
+  function. The strict matching is the safety net - if you ever see an
   incorrect collapse, please note the exact pseudocode that triggered it.
